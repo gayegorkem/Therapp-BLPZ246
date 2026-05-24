@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Therapp",
+    "slug": "therapp",
+    "scheme": "therapp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F1FFF8"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.therapp.mobile"
+    },
+    "android": {
+      "package": "com.therapp.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#F1FFF8"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "http://localhost:5080/api"
+    }
+  }
+}
