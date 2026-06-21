@@ -62,6 +62,7 @@ function AuthGate() {
   useEffect(() => {
     const inAuthGroup = segments[0] === '(auth)';
     const onOnboarding = segments[0] === 'onboarding';
+    const atRoot = (segments as string[]).length === 0; // index (kök) ekranı
 
     if (!hasOnboarded && !onOnboarding) {
       router.replace('/onboarding');
@@ -73,7 +74,7 @@ function AuthGate() {
       return;
     }
 
-    if (isAuthenticated && (inAuthGroup || onOnboarding)) {
+    if (isAuthenticated && (inAuthGroup || onOnboarding || atRoot)) {
       router.replace('/(tabs)/home');
     }
   }, [isAuthenticated, hasOnboarded, segments, router]);

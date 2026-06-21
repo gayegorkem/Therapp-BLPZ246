@@ -1,7 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { getApiUrl } from '@/utils/getApiUrl';
 import { logger } from '@/utils/logger';
-import { useAuthStore } from '@/store/authStore';
 import type { ApiError } from '@/types/api.types';
 
 const baseURL = getApiUrl();
@@ -19,9 +18,30 @@ export const bareClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// ---------- Auth wiring (registered by the auth store) ----------
+// We intentionally do NOT import the auth store here. That would create a
+// require cycle (auth.api -> client -> authStore -> auth.api) which can leave
+// modules uninitialized under the new architecture. Instead the store
+// registers its handlers at startup via configureAuth().
+type AuthHandlers = {
+  getToken: () => string | null;
+  refresh: () => Promise<string | null>;
+  onAuthFailure: () => Promise<void>;
+};
+
+let authHandlers: AuthHandlers = {
+  getToken: () => null,
+  refresh: async () => null,
+  onAuthFailure: async () => {},
+};
+
+export function configureAuth(handlers: AuthHandlers) {
+  authHandlers = handlers;
+}
+
 // ---------- Request: attach token ----------
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
+  const token = authHandlers.getToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -48,12 +68,9 @@ apiClient.interceptors.response.use(
       original._retried = true;
 
       if (!refreshInFlight) {
-        refreshInFlight = useAuthStore
-          .getState()
-          .refresh()
-          .finally(() => {
-            refreshInFlight = null;
-          });
+        refreshInFlight = authHandlers.refresh().finally(() => {
+          refreshInFlight = null;
+        });
       }
 
       try {
@@ -67,7 +84,7 @@ apiClient.interceptors.response.use(
       }
 
       // refresh failed -> clear session, let caller handle
-      await useAuthStore.getState().clearSession();
+      await authHandlers.onAuthFailure();
     }
 
     return Promise.reject(error);

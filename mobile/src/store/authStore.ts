@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { authApi, AuthResponse } from '@/api/auth.api';
+import { configureAuth } from '@/api/client';
 import { deleteSecure, getSecure, SecureKeys, setSecure } from '@/utils/secureStorage';
 import { logger } from '@/utils/logger';
 import type { AuthUser } from '@/types/user.types';
@@ -104,3 +105,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 }));
+
+// Wire the axios client to the store without creating an import cycle.
+configureAuth({
+  getToken: () => useAuthStore.getState().accessToken,
+  refresh: () => useAuthStore.getState().refresh(),
+  onAuthFailure: () => useAuthStore.getState().clearSession(),
+});
