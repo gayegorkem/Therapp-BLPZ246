@@ -1,0 +1,136 @@
+===============================================================================
+ THERAPP - Duygusal Destek ve Paylasim Toplulugu
+ Sistem Analizi ve Tasarimi Donem Projesi - BENIOKU (Kurulum Yonergeleri)
+ Hazirlayanlar: Gaye GORKEM, Rabia Nur GUN
+ Dersin Yurutucusu: Ogr. Gor. Koray COSKUN | 2026
+===============================================================================
+
+1) PROJE YAPISI
+-------------------------------------------------------------------------------
+ Therapp iki bagimsiz bilesenden olusur:
+   - backend/  : .NET 8 / ASP.NET Core Web API (PostgreSQL, EF Core, JWT)
+   - mobile/   : React Native + Expo (SDK 54) mobil istemci (TypeScript)
+ Iki bilesen REST API uzerinden haberlesir.
+
+
+2) GEREKSINIMLER (Onkosullar)
+-------------------------------------------------------------------------------
+   - .NET 8 SDK            (https://dotnet.microsoft.com/download)
+   - PostgreSQL 15+        (https://www.postgresql.org/download)
+   - Node.js 18+ ve npm    (https://nodejs.org)
+   - Expo Go uygulamasi    (fiziksel telefon icin - App Store / Google Play)
+   - Git                   (kaynak kodu icin)
+
+
+3) VERITABANI KURULUMU
+-------------------------------------------------------------------------------
+ a) PostgreSQL'i kurun ve calistigindan emin olun (varsayilan port 5432).
+ b) "therapp" adinda bir veritabani olusturun:
+
+        CREATE DATABASE therapp;
+
+ c) Baglanti bilgileri (backend/src/Therapp.Api/appsettings.json icinde):
+
+        Sunucu (Host)   : localhost
+        Port            : 5432
+        Veritabani      : therapp
+        Kullanici       : postgres
+        Sifre           : postgres
+
+    Baglanti dizesi (ConnectionStrings:Postgres):
+        Host=localhost;Port=5432;Database=therapp;Username=postgres;Password=postgres
+
+    NOT: Kendi PostgreSQL kullanici/sifrenizi kullaniyorsaniz yukaridaki
+         degerleri appsettings.json dosyasindan guncelleyin.
+
+ d) TABLOLAR OTOMATIK OLUSUR: Uygulama ilk calistiginda bekleyen EF Core
+    goclerini (migration) otomatik uygular ve 8 hazir kategoriyi tohumlar.
+    Elle tablo olusturmaniza gerek YOKTUR.
+
+
+4) JWT GIZLI ANAHTARI (ONEMLI - GUVENLIK)
+-------------------------------------------------------------------------------
+ appsettings.json icindeki "Jwt:Secret" degeri bir yer tutucudur ve en az
+ 32 karakter olmalidir. Calistirmadan once degistirin. Iki yontem:
+
+   - appsettings.json icinde dogrudan degistirin (gelistirme icin en kolayi):
+         "Jwt": { "Secret": "buraya-en-az-32-karakterlik-uzun-rastgele-anahtar" }
+
+   - VEYA .NET user secrets (daha guvenli):
+         cd backend/src/Therapp.Api
+         dotnet user-secrets init
+         dotnet user-secrets set "Jwt:Secret" "en-az-32-karakterlik-uzun-rastgele-anahtar"
+
+
+5) BACKEND'I CALISTIRMA
+-------------------------------------------------------------------------------
+     cd backend/src/Therapp.Api
+     dotnet restore
+     dotnet run
+
+ - API adresi        : http://localhost:5080   (tum arayuzler: http://0.0.0.0:5080)
+ - Swagger (API dok.) : http://localhost:5080/swagger   (yalnizca Development'ta)
+ - Ilk calistirmada goc + kategori tohumlama otomatik yapilir.
+
+ FIZIKSEL TELEFONDAN ERISIM ICIN:
+   Telefon ve bilgisayar AYNI Wi-Fi agina bagli olmalidir. Bilgisayarinizin
+   yerel IP adresini ogrenin (Windows: "ipconfig" -> IPv4 Adresi, orn.
+   192.168.1.25). Mobil tarafta API adresini bu IP ile kullanin (bkz. 6).
+
+
+6) MOBIL UYGULAMAYI CALISTIRMA
+-------------------------------------------------------------------------------
+     cd mobile
+     npm install
+
+ API adresini ayarlayin (asagidakilerden biri):
+   - mobile/.env dosyasi olusturup (.env.example ornek alinarak):
+         EXPO_PUBLIC_API_URL=http://<BILGISAYAR-IP>:5080/api
+     (Emulator/localhost icin: http://localhost:5080/api;
+      fiziksel telefon icin bilgisayarin yerel IP'sini yazin.)
+   - VEYA mobile/app.json icindeki "extra.apiUrl" degerini guncelleyin.
+
+ Baslatin:
+     npx expo start
+
+ - Cikan QR kodu telefondaki Expo Go ile okutun (fiziksel cihaz), veya
+ - "a" (Android emulator) / "i" (iOS simulator) / "w" (web) tuslarini kullanin.
+
+
+7) KULLANICI HESABI, YONETICI (ADMIN) VE GIRIS BILGILERI
+-------------------------------------------------------------------------------
+ - Uygulamada hazir (seed) bir kullanici YOKTUR. Uygulamayi acip "Kayit Ol"
+   ekranindan yeni bir hesap olusturabilirsiniz. Ornek bir test hesabi:
+
+         Gorunen ad     : Test Kullanici
+         Kullanici adi  : testuser
+         E-posta        : test@therapp.app
+         Sifre          : Test1234   (en az 8 karakter)
+
+   (Bu bilgiler ornektir; kayit ekranindan siz olusturursunuz.)
+
+ - AYRI BIR WEB YONETICI PANELI BULUNMAMAKTADIR. Moderasyon, rol tabanli
+   (User / Moderator / Admin) olarak API uzerinden calisir. Silme ve gizleme
+   gibi moderasyon islemleri Moderator/Admin rolune sahip kullanicilarca
+   yapilabilir. Bir kullaniciyi YONETICI yapmak icin, kayit olduktan sonra
+   veritabaninda rolunu guncelleyin (role: 0=User, 1=Moderator, 2=Admin):
+
+         UPDATE users SET role = 2 WHERE username = 'testuser';
+
+ - API'yi dogrudan denemek icin Swagger arayuzunu (madde 5) kullanabilir,
+   "Bearer" alanina giris sonrasi donen accessToken'i girerek korunan uc
+   noktalari test edebilirsiniz.
+
+
+8) SIK KARSILASILAN SORUNLAR
+-------------------------------------------------------------------------------
+ - "Baglanti hatasi / Network error": Telefon ile bilgisayar ayni agda mi?
+   API adresinde localhost yerine bilgisayarin yerel IP'si kullanildi mi?
+   Backend calisiyor mu (madde 5)? Guvenlik duvari 5080 portuna izin veriyor mu?
+ - "Jwt:Secret must be at least 32 characters": Madde 4'u uygulayin.
+ - Veritabani baglanti hatasi: PostgreSQL calisiyor mu, therapp veritabani
+   ve appsettings.json'daki kullanici/sifre dogru mu?
+
+===============================================================================
+ Iyi calismalar. - Therapp Ekibi, 2026
+===============================================================================
